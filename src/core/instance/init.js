@@ -12,10 +12,17 @@ import { extend, mergeOptions, formatComponentName } from '../util/index'
 
 let uid = 0
 
+/**
+ * @description 定义 Vue.prototype._init 函数
+ * @param {*} Vue Vue 构造函数
+ */
 export function initMixin (Vue: Class<Component>) {
+  // Vue 的初始化函数
   Vue.prototype._init = function (options?: Object) {
+    // ue 实例
     const vm: Component = this
     // a uid
+    // 保证每个 vue 实例都是唯一的，依次递增
     vm._uid = uid++
 
     let startTag, endTag
@@ -29,12 +36,15 @@ export function initMixin (Vue: Class<Component>) {
     // a flag to avoid this being observed
     vm._isVue = true
     // merge options
+    // 处理组件的option配置项
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
+      // 处理子组件的配置项
       initInternalComponent(vm, options)
     } else {
+      // 初始化根组件，把全局配置合并到根组件的局部配置
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -89,7 +99,11 @@ export function initInternalComponent (vm: Component, options: InternalComponent
     opts.staticRenderFns = options.staticRenderFns
   }
 }
-
+/**
+ * @description 从构造函数中解析配置对象，合并基类配置
+ * @param {*} Ctor 
+ * @returns 
+ */
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
   if (Ctor.super) {
