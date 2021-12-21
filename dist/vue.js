@@ -4971,7 +4971,7 @@
    * @description 定义 Vue.prototype._init 函数
    * @param {*} Vue Vue 构造函数
    */
-  function initMixin (Vue) {
+  function initMixin(Vue) {
     // Vue 的初始化函数
     Vue.prototype._init = function (options) {
       // ue 实例
@@ -4991,21 +4991,27 @@
       // a flag to avoid this being observed
       vm._isVue = true;
       // merge options
-      // 处理组件的option配置项
+      // 处理组件的 option 配置项
       if (options && options._isComponent) {
         // optimize internal component instantiation
         // since dynamic options merging is pretty slow, and none of the
         // internal component options needs special treatment.
-        // 处理子组件的配置项
+        // 给子组件做性能优化，减少原型链的动态查找，提高效率
+        // todo 为什么能提高效率，不提高效率可以怎么写？
         initInternalComponent(vm, options);
       } else {
-        // 初始化根组件，把全局配置合并到根组件的局部配置
+        // 根组件执行这步，把全局配置合并到根组件的局部配置
         vm.$options = mergeOptions(
+          // 解析构造函数中的配置对象，合并基类
           resolveConstructorOptions(vm.constructor),
           options || {},
           vm
         );
       }
+      /* 
+        istanbul 是一个代码覆盖率工具，这里用作性能测量
+        https://www.ruanyifeng.com/blog/2015/06/istanbul.html 
+      */
       /* istanbul ignore else */
       {
         initProxy(vm);
@@ -5033,14 +5039,20 @@
       }
     };
   }
-
-  function initInternalComponent (vm, options) {
+  /**
+   * @description 性能优化，减少原型链的动态查找，提高执行效率
+   * @param {*} vm 
+   * @param {*} options 
+   */
+  function initInternalComponent(vm, options) {
+    // 根据构造函数上的配置对象创建 vm.$options
     var opts = vm.$options = Object.create(vm.constructor.options);
     // doing this because it's faster than dynamic enumeration.
     var parentVnode = options._parentVnode;
     opts.parent = options.parent;
     opts._parentVnode = parentVnode;
 
+    // 性能优化
     var vnodeComponentOptions = parentVnode.componentOptions;
     opts.propsData = vnodeComponentOptions.propsData;
     opts._parentListeners = vnodeComponentOptions.listeners;
@@ -5053,11 +5065,12 @@
     }
   }
   /**
-   * @description 从构造函数中解析配置对象，合并基类配置
+   * @description 从构造函数中解析配置对象，合并基类配置项
    * @param {*} Ctor 
    * @returns 
    */
-  function resolveConstructorOptions (Ctor) {
+  function resolveConstructorOptions(Ctor) {
+    // 获取实例构造函数的选项
     var options = Ctor.options;
     if (Ctor.super) {
       var superOptions = resolveConstructorOptions(Ctor.super);
@@ -5065,13 +5078,19 @@
       if (superOptions !== cachedSuperOptions) {
         // super option changed,
         // need to resolve new options.
+        // 基类构造函数配置项已更改，需要设置一个新的配置项
         Ctor.superOptions = superOptions;
         // check if there are any late-modified/attached options (#4976)
+        // 检查是否有任何后期修改/附加的选项(#4976)
+        // 找到修改的选项
         var modifiedOptions = resolveModifiedOptions(Ctor);
         // update base extend options
         if (modifiedOptions) {
+          // 合并 extend 选项 和 被修改或增加的选项
           extend(Ctor.extendOptions, modifiedOptions);
         }
+        // 合并基类配置项，并将结果赋值为 Ctor.options
+        // todo mergeOptions 方法的具体实现还没了解
         options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions);
         if (options.name) {
           options.components[options.name] = Ctor;
@@ -5081,10 +5100,18 @@
     return options
   }
 
-  function resolveModifiedOptions (Ctor) {
+  /**
+   * @description 解析构造函数选项中后续被修改或者增加的选项
+   * @param {*} Ctor 
+   * @returns modified
+   */
+  function resolveModifiedOptions(Ctor) {
     var modified;
+    // 构造函数的选项
     var latest = Ctor.options;
+    // 密封的构造函数选项
     var sealed = Ctor.sealedOptions;
+    // 对比配置项，找出这两个配置项中不一样的属性，并返回配置项
     for (var key in latest) {
       if (latest[key] !== sealed[key]) {
         if (!modified) { modified = {}; }
